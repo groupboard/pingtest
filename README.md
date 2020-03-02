@@ -8,4 +8,4 @@ https://www.groupworld.net/pingtest.html
 
 ## Installation
 
-Configure [Janus Gateway]()https://github.com/meetecho/janus-gateway, including the text-room plugin.
+Configure [Janus Gateway](https://github.com/meetecho/janus-gateway), including the text-room plugin.
