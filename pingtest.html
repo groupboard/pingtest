@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title>Browser based WebRTC Ping Test</title>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/webrtc-adapter/6.0.3/adapter.min.js" ></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.7.2/jquery.min.js" ></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery.blockUI/2.70/jquery.blockUI.min.js" ></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.0.2/js/bootstrap.min.js"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bootbox.js/4.1.0/bootbox.min.js"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/spin.js/2.3.2/spin.min.js"></script>
+<script type="text/javascript" src="janus.js" ></script>
+<script type="text/javascript" src="pingtest.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootswatch/3.3.7/cerulean/bootstrap.min.css" type="text/css"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.2/css/font-awesome.min.css" type="text/css"/>
+</head>
+<body>
+
+
+<nav class="navbar navbar-default navbar-static-top">
+</nav>
+
+<div class="container">
+	<div class="row">
+		<div class="col-md-12">
+			<div class="page-header">
+				<h1>Ping Test
+					<button class="btn btn-default" autocomplete="off" id="start">Start</button>
+				</h1>
+			</div>
+			<div class="container" id="details">
+                        <p>Click Start to test the quality of the internet
+                        connection to our server. Leave the test running
+                        for a few minutes for the most accurate results.</p>
+                        <p>Ideally you should see ping times under 250ms and
+                        jitter under 50ms, and zero packet loss.</p>
+                        <p>Troubleshooting tips:
+                        <ul>
+                        <li> If using wifi, try moving closer to your wifi router
+                        <li> Make sure that nobody is downloading or uploading large files, or watching movies using the internet connection
+                        <li> Try disabling and enabling wifi on your computer
+                        <li> Try turning your router off and on again
+                        <li> Try rebooting your computer
+                        <li> For users in China or UAE we recommend using a VPN for best performance
+			</div>
+			<div class="container " id="room">
+				<div class="row">
+					<div class="col-md-8">
+						<div class="panel panel-default">
+							<div class="panel-heading">
+								<h3 class="panel-title">Ping Results </span></h3>
+							</div>
+							<div class="panel-body relative" id="pingresults">
+                                                        <p>Pings sent: <span id="pings_sent"></span></p>
+                                                        <p>Pings received: <span id="pings_received"></span></p>
+                                                        <p>Average ping time: <span id="average_ping_time"></span>ms</p>
+                                                        <p>Average jitter: <span id="average_jitter"></span>ms</p>
+                                                        <p>Packet loss: <span id="packet_loss"></span>%</p>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<hr>
+	<div class="footer">
+	</div>
+</div>
+
+</body>
+</html>
