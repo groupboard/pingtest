@@ -63,7 +63,6 @@ var opaqueId = "pingtest-"+Janus.randomString(12);
 var myroom = new Date().getTime() % 10000000;
 var myusername = Janus.randomString(12);
 var myid = Janus.randomString(12);
-var participants = {}
 var transactions = {}
 
 $(document).ready(function() {
@@ -153,26 +152,6 @@ $(document).ready(function() {
                                 var msg = json["text"];
                                 received_ping(msg);
 
-                            } else if(what === "join") {
-                                    // Somebody joined
-                                    var username = json["username"];
-                                    var display = json["display"];
-                                    participants[username] = display ? display : username;
-                            } else if(what === "leave") {
-                                    // Somebody left
-                                    var username = json["username"];
-                                    var when = new Date();
-                                    delete participants[username];
-                            } else if(what === "kicked") {
-                                    // Somebody was kicked
-                                    var username = json["username"];
-                                    var when = new Date();
-                                    delete participants[username];
-                                    if(username === myid) {
-                                            bootbox.alert("You have been kicked from the room", function() {
-                                                    window.location.reload();
-                                            });
-                                    }
                             } else if(what === "destroyed") {
                                     if(json["room"] !== myroom)
                                             return;
@@ -330,13 +309,6 @@ function registerUsername() {
                     return;
             }
             // We're in
-            // Any participants already in?
-            if(response.participants && response.participants.length > 0) {
-                    for(var i in response.participants) {
-                            var p = response.participants[i];
-                            participants[p.username] = p.display ? p.display : p.username;
-                    }
-            }
     };
     textroom.data({
             text: JSON.stringify(register),
