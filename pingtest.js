@@ -134,11 +134,6 @@ $(document).ready(function() {
                         ondataopen: function(data) {
                             Janus.log("The DataChannel is available!");
                             // Prompt for a display name to join the default room
-                            $('#roomjoin').removeClass('hide').show();
-                            $('#registernow').removeClass('hide').show();
-                            $('#register').click(registerUsername);
-                            $('#username').focus();
-                            //registerUsername();
                             var m = { "request": "exists", "room": myroom };
                             textroom.send({"message": m, "success": reply_exists});
                         },
@@ -308,19 +303,6 @@ function send_ping()
     });
 }
 
-function checkEnter(field, event) {
-	var theCode = event.keyCode ? event.keyCode : event.which ? event.which : event.charCode;
-	if(theCode == 13) {
-		if(field.id == 'username')
-			registerUsername();
-		else if(field.id == 'datasend')
-			sendData();
-		return false;
-	} else {
-		return true;
-	}
-}
-
 function registerUsername() {
     // Try a registration
     var transaction = randomString(12);
@@ -345,31 +327,14 @@ function registerUsername() {
                     } else {
                             bootbox.alert(response["error"]);
                     }
-                    $('#username').removeAttr('disabled').val("");
-                    $('#register').removeAttr('disabled').click(registerUsername);
                     return;
             }
             // We're in
-            $('#roomjoin').hide();
-            $('#room').removeClass('hide').show();
-            $('#participant').removeClass('hide').html(myusername).show();
-            $('#chatroom').css('height', ($(window).height()-420)+"px");
-            $('#datasend').removeAttr('disabled');
             // Any participants already in?
             if(response.participants && response.participants.length > 0) {
                     for(var i in response.participants) {
                             var p = response.participants[i];
                             participants[p.username] = p.display ? p.display : p.username;
-                            if(p.username !== myid && $('#rp' + p.username).length === 0) {
-                                    // Add to the participants list
-                                    $('#list').append('<li id="rp' + p.username + '" class="list-group-item">' + participants[p.username] + '</li>');
-                                    $('#rp' + p.username).css('cursor', 'pointer').click(function() {
-                                            var username = $(this).attr('id').split("rp")[1];
-                                            sendPrivateMsg(username);
-                                    });
-                            }
-                            $('#chatroom').append('<p style="color: green;">[' + getDateString() + '] <i>' + participants[p.username] + ' joined</i></p>');
-                            $('#chatroom').get(0).scrollTop = $('#chatroom').get(0).scrollHeight;
                     }
             }
     };
@@ -377,73 +342,8 @@ function registerUsername() {
             text: JSON.stringify(register),
             error: function(reason) {
                     bootbox.alert(reason);
-                    $('#username').removeAttr('disabled').val("");
-                    $('#register').removeAttr('disabled').click(registerUsername);
             }
     });
-}
-
-function sendPrivateMsg(username) {
-	var display = participants[username];
-	if(!display)
-		return;
-	bootbox.prompt("Private message to " + display, function(result) {
-		if(result && result !== "") {
-			var message = {
-				textroom: "message",
-				transaction: randomString(12),
-				room: myroom,
-				to: username,
-				text: result
-			};
-			textroom.data({
-				text: JSON.stringify(message),
-				error: function(reason) { bootbox.alert(reason); },
-				success: function() {
-					$('#chatroom').append('<p style="color: purple;">[' + getDateString() + '] <b>[whisper to ' + display + ']</b> ' + result);
-					$('#chatroom').get(0).scrollTop = $('#chatroom').get(0).scrollHeight;
-				}
-			});
-		}
-	});
-	return;
-}
-
-function sendData() {
-	var data = $('#datasend').val();
-	if(data === "") {
-		bootbox.alert('Insert a message to send on the DataChannel');
-		return;
-	}
-	var message = {
-		textroom: "message",
-		transaction: randomString(12),
-		room: myroom,
- 		text: data,
-	};
-	// Note: messages are always acknowledged by default. This means that you'll
-	// always receive a confirmation back that the message has been received by the
-	// server and forwarded to the recipients. If you do not want this to happen,
-	// just add an ack:false property to the message above, and server won't send
-	// you a response (meaning you just have to hope it succeeded).
-	textroom.data({
-		text: JSON.stringify(message),
-		error: function(reason) { bootbox.alert(reason); },
-		success: function() { $('#datasend').val(''); }
-	});
-}
-
-// Helper to format times
-function getDateString(jsonDate) {
-	var when = new Date();
-	if(jsonDate) {
-		when = new Date(Date.parse(jsonDate));
-	}
-	var dateString =
-			("0" + when.getUTCHours()).slice(-2) + ":" +
-			("0" + when.getUTCMinutes()).slice(-2) + ":" +
-			("0" + when.getUTCSeconds()).slice(-2);
-	return dateString;
 }
 
 // Just an helper to generate random usernames
