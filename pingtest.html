@@ -18,7 +18,6 @@
 </head>
 <body>
 
-
 <nav class="navbar navbar-default navbar-static-top">
 </nav>
 
@@ -36,6 +35,7 @@
                         for a few minutes for the most accurate results.</p>
                         <p>Ideally you should see ping times under 250ms and
                         jitter under 50ms, and zero packet loss.</p>
+                        <p>Note that we use <a href="https://github.com/meetecho/janus-gateway">Janus Gateway</a>, which may introduce its own latency and jitter.</p>
                         <p>Troubleshooting tips:
                         <ul>
                         <li> If using wifi, try moving closer to your wifi router
@@ -58,6 +58,7 @@
                                                         <p>Average ping time: <span id="average_ping_time"></span>ms</p>
                                                         <p>Average jitter: <span id="average_jitter"></span>ms</p>
                                                         <p>Packet loss: <span id="packet_loss"></span>%</p>
+                                                        <canvas id="meter" width=150 height=150 style="position:absolute; top: 15px; right: 15px">
 							</div>
 						</div>
 					</div>

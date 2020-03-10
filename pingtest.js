@@ -44,21 +44,31 @@
 //
 var server = null;
 if(window.location.protocol === 'http:')
-	server = "ws://" + window.location.hostname + "/janus_websocket";
+	server = "http://" + window.location.hostname + ":8088/janus";
 else
-	server = "wss://" + window.location.hostname + "/janus_websocket";
+	server = "https://" + window.location.hostname + ":8089/janus";
 
 var janus = null;
 var ping_times = {};
+var rx_ping_times = {};
 var total_ping_time = 0;
 var total_jitter = 0;
 var last_ping_time = 0;
 var textroom = null;
+var hovering = false;
+var last_hover_time = 0;
 var ping_to = null;
 var ping_interval = 200;
 var pings_sent = 0;
 var pings_received = 0;
 var opaqueId = "pingtest-"+Janus.randomString(12);
+var NUM_MOVING_AVERAGE = 15;
+
+var EXCELLENT_JITTER = 50;
+var GOOD_JITTER = 100;
+var OK_JITTER = 150;
+
+var meter = null; // optional canvas to draw quality meter
 
 var myroom = new Date().getTime() % 10000000;
 var myusername = Janus.randomString(12);
@@ -66,6 +76,21 @@ var myid = Janus.randomString(12);
 var transactions = {}
 
 $(document).ready(function() {
+
+    $('#meter').on('mouseover', function() 
+    {
+        hovering = true;
+        last_hover_time = performance.now();
+    });
+
+    $('#meter').on('mouseout', function() 
+    {
+        hovering = false;
+    });
+    if ($('#meter').length > 0)
+    {
+        meter = $('#meter')[0].getContext('2d');
+    }
 
     // Initialize the library (all console debuggers enabled)
     Janus.init({debug: "false", callback: function() {
@@ -80,7 +105,7 @@ $(document).ready(function() {
             // Create session
             janus = new Janus(
             {
-                iceServers: [ {urls: ['stun:stun.stunprotocol.org', 'stun:stun.l.google.com:19302']} ],
+                iceServers: [ {urls: ['stun:stun.stunprotocol.org', 'stun:stun.l.google.com:19302']}],
                 server: server,
                 success: function() {
                     // Attach to text room plugin
@@ -184,11 +209,13 @@ $(document).ready(function() {
 
 function received_ping(msg)
 {
+
+    var t2 = performance.now();
+    rx_ping_times[pings_received] = t2;
     ++pings_received;
     var t1 = ping_times[msg];
     if (t1)
     {
-        var t2 = performance.now();
         if (0 != last_ping_time)
         {
             total_jitter += Math.abs(last_ping_time-(t2-t1));
@@ -207,6 +234,138 @@ function received_ping(msg)
     $('#average_ping_time').html(avg.toFixed(0));
     $('#pings_received').html(pings_received);
     $('#packet_loss').html(packet_loss.toFixed(0));
+
+    calc_moving_average();
+}
+
+function calc_moving_average()
+{
+    if (pings_sent > NUM_MOVING_AVERAGE)
+    {
+        var packets_lost = 0;
+        var tot_jitter = 0;
+        var tot_ping = 0;
+        var last_ping = 0;
+        var pings_got = 0;
+
+        // ignore very last ping sent, in case we haven't received a reply yet
+        for (var i = pings_sent-NUM_MOVING_AVERAGE-1; i < pings_sent-1; ++i)
+        {
+            if (!rx_ping_times[i])
+            {
+                ++packets_lost;
+            }
+            else
+            {
+                ++pings_got;
+
+                var ping = rx_ping_times[i]-ping_times[i];
+                if (last_ping == 0)
+                {
+                    if (i > 0 && rx_ping_times[i-1])
+                    {
+                        last_ping = rx_ping_times[i-1]-ping_times[i-1];
+                    }
+                    else
+                    {
+                        last_ping = ping;
+                    }
+                }
+                tot_ping += ping;
+                var jitter = Math.abs(ping-last_ping);
+                tot_jitter += jitter;
+                last_ping = ping;
+            }
+        }
+
+        var avg_ping = 0;
+        var avg_jitter = 0;
+        if (pings_got > 0)
+        {
+            avg_ping = tot_ping/pings_got;
+            avg_jitter = tot_jitter/pings_got;
+        }
+
+        // calculate link quality
+        var qual = 0;
+        if (avg_jitter < EXCELLENT_JITTER && packets_lost == 0)
+        {
+            qual = 100;
+        }
+        else if (avg_jitter < GOOD_JITTER && packets_lost == 0)
+        {
+            qual = 75;
+        }
+        else if (avg_jitter < OK_JITTER && packets_lost <= 1)
+        {
+            qual = 50;
+        }
+        else if (packets_lost < NUM_MOVING_AVERAGE/4)
+        {
+            qual = 25;
+        }
+        else
+        {
+            qual = 0;
+        }
+
+        if (meter)
+        {
+            var m = $('#meter')[0];
+            var w = m.width;
+            var h = m.height;
+            meter.clearRect(0, 0, w, h);
+            if (qual >= 50)
+            {
+                meter.fillStyle = "rgb(0,255,0)"; // green
+            }
+            else
+            {
+                meter.fillStyle = "rgb(255,0,0)"; // red
+            }
+            meter.strokeStyle = "rgb(200,200,200)";
+            meter.lineWidth = 0;
+
+            // draw main meter
+            meter.beginPath();
+            meter.moveTo(0,h);
+            meter.lineTo(w*qual/100, h);
+            meter.lineTo(w*qual/100, h-h*qual/100);
+            meter.lineTo(0,h);
+            meter.closePath();
+            meter.fill();
+            meter.stroke();
+            meter.beginPath();
+            meter.moveTo(w/4+0.5, h);
+            meter.lineTo(w/4+0.5, h*3/4);
+            if (qual >= 50)
+            {
+                meter.moveTo(w/2+0.5, h);
+                meter.lineTo(w/2+0.5, h/2);
+                if (qual >= 75)
+                {
+                    meter.moveTo(w*3/4+0.5, h);
+                    meter.lineTo(w*3/4+0.5, h/4);
+                }
+            }
+
+            meter.closePath();
+            meter.stroke();
+
+            var loss = (packets_lost/NUM_MOVING_AVERAGE)*100;
+
+            var t1 = performance.now();
+            if ((!hovering) || (t1-last_hover_time > 2000))
+            {
+                if (hovering)
+                {
+                    last_hover_time = t1;
+                }
+
+                m.title = "Jitter: "+avg_jitter.toFixed(0)+"ms, ping: "+avg_ping.toFixed(0)+"ms, packet loss: "+loss.toFixed(0)+"%";
+            }
+        }
+    }
 }
 
 function reply_exists(msg)
