@@ -14,7 +14,7 @@ Configure [Janus Gateway](https://github.com/meetecho/janus-gateway), including 
 
 ## Cleanup
 
-Each time a user connects, it creates a Janus TextRoom. You can use the cleanroom.js script to remove empty rooms:
+Each time a user connects, it creates a Janus TextRoom. You can use the cleanrooms.js script to remove empty rooms:
 
     npm install janus-gateway-js
     node cleanrooms.js
