@@ -113,6 +113,7 @@ $(document).ready(function() {
                     {
                         plugin: "janus.plugin.textroom",
                         opaqueId: opaqueId,
+                        dataChannelOptions: { ordered: false, maxRetransmits: 0 },
                         success: function(pluginHandle) {
                             textroom = pluginHandle;
                             Janus.log("Plugin attached! (" + textroom.getPlugin() + ", id=" + textroom.getId() + ")");
