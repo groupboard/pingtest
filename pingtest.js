@@ -44,9 +44,9 @@
 //
 var server = null;
 if(window.location.protocol === 'http:')
-	server = "http://" + window.location.hostname + ":8088/janus";
+        server = "http://" + window.location.hostname + ":8088/janus";
 else
-	server = "https://" + window.location.hostname + ":8089/janus";
+        server = "https://" + window.location.hostname + ":8089/janus";
 
 var janus = null;
 var ping_times = {};
@@ -92,121 +92,133 @@ $(document).ready(function() {
         meter = $('#meter')[0].getContext('2d');
     }
 
+    start_janus();
+});
+
+function start_janus()
+{
     // Initialize the library (all console debuggers enabled)
     Janus.init({debug: "false", callback: function() {
         // Use a button to start the demo
         $('#start').one('click', function() {
-            $(this).attr('disabled', true).unbind('click');
-            // Make sure the browser supports WebRTC
-            if(!Janus.isWebrtcSupported()) {
-                bootbox.alert("No WebRTC support... ");
-                return;
-            }
-            // Create session
-            janus = new Janus(
-            {
-                iceServers: [ {urls: ['stun:stun.stunprotocol.org', 'stun:stun.l.google.com:19302']}],
-                server: server,
-                success: function() {
-                    // Attach to text room plugin
-                    janus.attach(
-                    {
-                        plugin: "janus.plugin.textroom",
-                        opaqueId: opaqueId,
-                        dataChannelOptions: { ordered: false, maxRetransmits: 0 },
-                        success: function(pluginHandle) {
-                            textroom = pluginHandle;
-                            Janus.log("Plugin attached! (" + textroom.getPlugin() + ", id=" + textroom.getId() + ")");
-                            // Setup the DataChannel
-                            var body = { "request": "setup" };
-                            Janus.debug("Sending message (" + JSON.stringify(body) + ")");
-                            textroom.send({"message": body});
-                            setup_ping();
-                        },
-                        error: function(error) {
-                            console.error("  -- Error attaching plugin...", error);
-                            bootbox.alert("Error attaching plugin... " + error);
-                        },
-                        webrtcState: function(on) {
-                            Janus.log("Janus says our WebRTC PeerConnection is " + (on ? "up" : "down") + " now");
-                            $("#videoleft").parent().unblock();
-                        },
-                        onmessage: function(msg, jsep) {
-                            Janus.debug(" ::: Got a message :::");
-                            Janus.debug(msg);
-                            if(msg["error"] !== undefined && msg["error"] !== null) {
-                                bootbox.alert(msg["error"]);
-                            }
-                            if(jsep !== undefined && jsep !== null) {
-                                // Answer
-                                textroom.createAnswer(
-                                {
-                                    jsep: jsep,
-                                    media: { audio: false, video: false, data: true },	// We only use datachannels
-                                    success: function(jsep) {
-                                        Janus.debug("Got SDP!");
-                                        Janus.debug(jsep);
-                                        var body = { "request": "ack" };
-                                        textroom.send({"message": body, "jsep": jsep});
-                                    },
-                                    error: function(error) {
-                                        Janus.error("WebRTC error:", error);
-                                        bootbox.alert("WebRTC error... " + JSON.stringify(error));
-                                    }
-                                });
-                            }
-                        },
-                        ondataopen: function(data) {
-                            Janus.log("The DataChannel is available!");
-                            // Prompt for a display name to join the default room
-                            var m = { "request": "exists", "room": myroom };
-                            textroom.send({"message": m, "success": reply_exists});
-                        },
-                        ondata: function(data) {
-                            Janus.debug("We got data from the DataChannel! " + data);
-                            //~ $('#datarecv').val(data);
-                            var json = JSON.parse(data);
-                            var transaction = json["transaction"];
-                            if(transactions[transaction]) {
-                                // Someone was waiting for this
-                                transactions[transaction](json);
-                                delete transactions[transaction];
-                                return;
-                            }
-                            var what = json["textroom"];
-                            if(what === "message") {
-                                var msg = json["text"];
-                                received_ping(msg);
-
-                            } else if(what === "destroyed") {
-                                    if(json["room"] !== myroom)
-                                            return;
-                                    // Room was destroyed, goodbye!
-                                    Janus.warn("The room has been destroyed!");
-                                    bootbox.alert("The room has been destroyed", function() {
-                                            window.location.reload();
-                                    });
-                            }
-                        },
-                        oncleanup: function() {
-                                Janus.log(" ::: Got a cleanup notification :::");
-                                $('#datasend').attr('disabled', true);
-                        }
-                    });
-                },
-                error: function(error) {
-                    Janus.error(error);
-                    bootbox.alert(error, function() {
-                            window.location.reload();
-                    });
-                },
-                destroyed: function() {
-                    window.location.reload();
-                }
-            });
+            start_pings();
         });
     }});
-});
+}
+
+function start_pings()
+{
+    $(this).attr('disabled', true).unbind('click');
+    // Make sure the browser supports WebRTC
+    if(!Janus.isWebrtcSupported()) {
+        bootbox.alert("No WebRTC support... ");
+        return;
+    }
+    // Create session
+    janus = new Janus(
+    {
+        server: server,
+        success: function() {
+            // Attach to text room plugin
+            janus.attach(
+            {
+                plugin: "janus.plugin.textroom",
+                opaqueId: opaqueId,
+                dataChannelOptions: { ordered: false, maxRetransmits: 0 },
+                success: function(pluginHandle) {
+                    textroom = pluginHandle;
+                    Janus.log("Plugin attached! (" + textroom.getPlugin() + ", id=" + textroom.getId() + ")");
+                    // Setup the DataChannel
+                    var body = { "request": "setup" };
+                    Janus.debug("Sending message (" + JSON.stringify(body) + ")");
+                    textroom.send({"message": body});
+                    setup_ping();
+                },
+                error: function(error) {
+                    console.error("  -- Error attaching plugin...", error);
+                    bootbox.alert("Error attaching plugin... " + error);
+                },
+                webrtcState: function(on) {
+                    Janus.log("Janus says our WebRTC PeerConnection is " + (on ? "up" : "down") + " now");
+                    if ($("#videoleft").length > 0)
+                    {
+                        $("#videoleft").parent().unblock();
+                    }
+                },
+                onmessage: function(msg, jsep) {
+                    Janus.debug(" ::: Got a message :::");
+                    Janus.debug(msg);
+                    if(msg["error"] !== undefined && msg["error"] !== null) {
+                        bootbox.alert(msg["error"]);
+                    }
+                    if(jsep !== undefined && jsep !== null) {
+                        // Answer
+                        textroom.createAnswer(
+                        {
+                            jsep: jsep,
+                            media: { audio: false, video: false, data: true },	// We only use datachannels
+                            success: function(jsep) {
+                                Janus.debug("Got SDP!");
+                                Janus.debug(jsep);
+                                var body = { "request": "ack" };
+                                textroom.send({"message": body, "jsep": jsep});
+                            },
+                            error: function(error) {
+                                Janus.error("WebRTC error:", error);
+                                bootbox.alert("WebRTC error... " + JSON.stringify(error));
+                            }
+                        });
+                    }
+                },
+                ondataopen: function(data) {
+                    Janus.log("The DataChannel is available!");
+                    // Prompt for a display name to join the default room
+                    var m = { "request": "exists", "room": myroom };
+                    textroom.send({"message": m, "success": reply_exists});
+                },
+                ondata: function(data) {
+                    Janus.debug("We got data from the DataChannel! " + data);
+                    //~ $('#datarecv').val(data);
+                    var json = JSON.parse(data);
+                    var transaction = json["transaction"];
+                    if(transactions[transaction]) {
+                        // Someone was waiting for this
+                        transactions[transaction](json);
+                        delete transactions[transaction];
+                        return;
+                    }
+                    var what = json["textroom"];
+                    if(what === "message") {
+                        var msg = json["text"];
+                        received_ping(msg);
+
+                    } else if(what === "destroyed") {
+                            if(json["room"] !== myroom)
+                                    return;
+                            // Room was destroyed, goodbye!
+                            Janus.warn("The room has been destroyed!");
+                            bootbox.alert("The room has been destroyed", function() {
+                                    window.location.reload();
+                            });
+                    }
+                },
+                oncleanup: function() {
+                        Janus.log(" ::: Got a cleanup notification :::");
+                        $('#datasend').attr('disabled', true);
+                }
+            });
+        },
+        error: function(error) {
+            Janus.error(error);
+            bootbox.alert(error, function() {
+                    window.location.reload();
+            });
+        },
+        destroyed: function() {
+            window.location.reload();
+        }
+    });
+}
 
 function received_ping(msg)
 {
