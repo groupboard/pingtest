@@ -204,7 +204,6 @@ function start_pings()
                 },
                 oncleanup: function() {
                         Janus.log(" ::: Got a cleanup notification :::");
-                        $('#datasend').attr('disabled', true);
                 }
             });
         },
@@ -450,7 +449,6 @@ function send_ping()
     textroom.data({
             text: JSON.stringify(message),
             error: function(reason) { bootbox.alert(reason); },
-            success: function() { $('#datasend').val(''); }
     });
 }
 
